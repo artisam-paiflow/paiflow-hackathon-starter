@@ -52,6 +52,18 @@ Fields: `asset`.
 
 A server-side authenticated HTTP callback makes the relayer invoke an already funded flow. The deployment UI provides its trigger URL and webhook secret; keep the secret on your server. Depositing funds tops up this flow and does not fire the callback. It can drive Pay, Split or Swap; its supported condition kind is multisig. This is not an `execute` flow: the v1 deposit API refuses a webhook-headed deployment. For the simplest payment integration use On Receive instead.
 
+After your server verifies the completed goal, release from the funded pool with `x-webhook-secret` and a JSON body containing `escrow: true`. `amount` is a stroop string; omit it or use `"0"` to release the entire available balance. For one reward at a time, specify its amount:
+
+```bash
+# Run on your app server; keep PAIFLOW_WEBHOOK_SECRET server-side.
+curl -sS --fail-with-body -X POST "$PAIFLOW/api/webhooks/$DEPLOYMENT_ID" \
+  -H "x-webhook-secret: $PAIFLOW_WEBHOOK_SECRET" \
+  -H 'Content-Type: application/json' \
+  --data '{"escrow":true,"amount":"100000000"}'
+```
+
+This releases 10 tokens from the pool. Check the response and transaction status before marking the reward paid; the callback can return `PENDING`.
+
 ## Subscription — `subscription`
 
 Fields: `asset`, `subscriber` (account address), `amountPerPeriodStroops` (integer string), `intervalAmount` (positive integer, default 1), `intervalUnit` (same five units, default `day`); optional `endsAt`, `occurrences`.
@@ -120,13 +132,13 @@ Email is a flow setting, not a block: optional `notify: { mode, sendTo }`, with 
 
 Use `https://beta.app.paiflow.xyz` as the Paiflow testnet origin for every URL below. `deploymentId` is the deployment UUID, not a flow id or `C…` contract address. These pages require a confirmed deployment with the appropriate contract type; an unavailable page returns 404.
 
-| Page      | URL shape                           | What the team's app uses it for                                                                                                                                                                                                                                                                                               |
-| --------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Trigger   | `/trigger/[deploymentId]`           | Public payment/top-up page with amount, wallet signing and a SEP-7 transaction QR. On Receive deposits run the flow; Schedule and HTTP Webhook deposits fund it. A fixed flow can lock its required amount; variable flows accept an `?amount=10` hint in tokens, not stroops. The flow's required amount overrides the hint. |
-| Embed     | `/deployments/[deploymentId]/embed` | Public view of the deployed graph and live events, with payment QR where supported. Link to it or place it in your app's embedded view; it is not an API response.                                                                                                                                                            |
-| Allowance | `/allowance/[deploymentId]`         | The subscription customer connects their wallet and approves an asset allowance for the subscription contract. Each approval adds to the existing allowance. It does not deposit or charge immediately.                                                                                                                       |
+| Page      | URL shape                           | What the team's app uses it for                                                                                                                                                                                                                                                                             |
+| --------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Trigger   | `/trigger/[deploymentId]`           | Public payment/top-up page with amount entry and wallet signing. On Receive deposits run the flow; Schedule and HTTP Webhook deposits fund it. A fixed flow can lock its required amount; variable flows accept an `?amount=10` hint in tokens, not stroops. The flow's required amount overrides the hint. |
+| Embed     | `/deployments/[deploymentId]/embed` | Public view of the deployed graph and live events, with payment QR where supported. Link to it or place it in your app's embedded view; it is not an API response.                                                                                                                                          |
+| Allowance | `/allowance/[deploymentId]`         | The subscription customer connects their wallet and approves an asset allowance for the subscription contract. Each approval adds to the existing allowance. It does not deposit or charge immediately.                                                                                                     |
 
-The payment QR carries a SEP-7 transaction request, not merely a contract address. A wallet must support signing that request on testnet. Your own checkout can use the execute sequence instead.
+The usual trigger QR opens this hosted page (or the allowance page for a subscription). The customer then connects a testnet wallet and signs there. Separate transaction QR modes encode SEP-7 requests and require a compatible wallet. Your own checkout can use the execute sequence instead.
 
 # 4. The `/api/v1` API
 
