@@ -2,6 +2,8 @@
 
 Paiflow is the money logic behind your app. This repo is the plumbing: replace `app/page.tsx` with your idea and keep the server-only typed client in `lib/paiflow.ts`. One deployment serves one business or group. Testnet only.
 
+For a complete example built from this template, see [Campus Snacks](https://github.com/artisam-paiflow/paiflow-campus-snacks): a three-item snack stand with testnet USDC checkout, a vendor/student-organisation split, and live payment activity. Its README includes the flow setup and demo script.
+
 ## Setup in five steps
 
 1. Install **Node 22** and **pnpm 10** (`corepack enable`).
