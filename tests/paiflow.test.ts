@@ -17,6 +17,7 @@ beforeEach(() => {
   vi.stubGlobal("__paiflowDemoCache", undefined);
   mockFetch.mockReset();
   vi.stubGlobal("fetch", mockFetch);
+  vi.stubEnv("PAIFLOW_MODE", "team");
   vi.stubEnv("PAIFLOW_BASE_URL", "http://localhost:3000");
   vi.stubEnv("PAIFLOW_API_TOKEN", token);
   vi.stubEnv("PAIFLOW_DEPLOYMENT_ID", deployment);
@@ -189,6 +190,9 @@ describe("typed Paiflow client (llms.md §4)", () => {
   });
 });
 describe("demo cache", () => {
+  beforeEach(() => {
+    vi.stubEnv("PAIFLOW_MODE", "demo");
+  });
   it("mints once across concurrent requests, reuses, refreshes two minutes before expiry", async () => {
     vi.stubEnv("PAIFLOW_API_TOKEN", "");
     vi.stubEnv("PAIFLOW_BASE_URL", "");
@@ -212,7 +216,7 @@ describe("demo cache", () => {
     const api = await import("@/lib/paiflow");
     await Promise.all([api.listEvents(), api.listEvents(), api.listEvents()]);
     expect(mints).toBe(1);
-    expect(api.publicConfig()).toEqual({ demoMode: true, deploymentUrl: null });
+    expect(api.publicConfig()).toEqual({ mode: "demo", deploymentUrl: null });
     vi.advanceTimersByTime(57 * 60_000);
     await api.listEvents();
     expect(mints).toBe(1);
@@ -282,5 +286,135 @@ describe("demo cache", () => {
     });
     await api.listEvents();
     expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
+});
+
+describe("preparation and explicit integration modes", () => {
+  it.each([undefined, "prepare"])(
+    "blocks every upstream helper in mode %s even with team credentials present",
+    async (mode) => {
+      vi.stubEnv("PAIFLOW_MODE", mode);
+      const api = await import("@/lib/paiflow");
+      expect(api.publicConfig()).toEqual({
+        mode: "prepare",
+        deploymentUrl: null,
+      });
+      const calls = [
+        () => api.prepareExecute({ from, amount: "1" }),
+        () => api.submitExecute({ signedXdr: "same-envelope" }),
+        () => api.listEvents(),
+        () => api.preparePayout({ from, amount: "1", recipient: from }),
+        () => api.submitPayout({ signedXdr: "same-envelope" }),
+        () => api.releaseEarly(),
+        () => api.getOpenApi("http://localhost:3000"),
+        () => api.getDemoToken("http://localhost:3000"),
+      ];
+      for (const call of calls)
+        await expect(call()).rejects.toMatchObject({
+          status: 403,
+          api: { code: "PREPARATION_MODE" },
+        });
+      expect(mockFetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["", "typo", "TEAM"])(
+    "rejects invalid mode %j without fetching",
+    async (mode) => {
+      vi.stubEnv("PAIFLOW_MODE", mode);
+      const api = await import("@/lib/paiflow");
+      await expect(api.listEvents()).rejects.toMatchObject({
+        status: 503,
+        api: { code: "CONFIGURATION" },
+      });
+      expect(api.publicConfig()).toEqual({
+        mode: "disabled",
+        deploymentUrl: null,
+        message: "Set PAIFLOW_MODE to prepare, demo or team.",
+      });
+      expect(mockFetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ["", deployment],
+    [token, ""],
+    ["invalid-token", deployment],
+    [token, "invalid-deployment"],
+  ])(
+    "refuses incomplete or malformed team configuration without demo fallback",
+    async (teamToken, teamDeployment) => {
+      vi.stubEnv("PAIFLOW_API_TOKEN", teamToken);
+      vi.stubEnv("PAIFLOW_DEPLOYMENT_ID", teamDeployment);
+      const api = await import("@/lib/paiflow");
+      await expect(api.listEvents()).rejects.toMatchObject({
+        status: 503,
+        api: { code: "CONFIGURATION" },
+      });
+      expect(api.publicConfig().mode).toBe("disabled");
+      expect(mockFetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    "invalid-origin",
+    "https://private-user:private-password@example.com",
+    "https://example.com/path",
+  ])(
+    "returns a configuration error without exposing an invalid origin",
+    async (origin) => {
+      vi.stubEnv("PAIFLOW_BASE_URL", origin);
+      const api = await import("@/lib/paiflow");
+      await expect(api.listEvents()).rejects.toMatchObject({
+        status: 503,
+        api: { code: "CONFIGURATION" },
+      });
+      expect(JSON.stringify(api.publicConfig())).not.toContain(origin);
+      expect(mockFetch).not.toHaveBeenCalled();
+    },
+  );
+
+  it("exposes only non-secret configuration for an explicitly selected team", async () => {
+    const api = await import("@/lib/paiflow");
+    expect(api.publicConfig()).toEqual({
+      mode: "team",
+      deploymentUrl: `http://localhost:3000/deployments/${deployment}`,
+    });
+    expect(JSON.stringify(api.publicConfig())).not.toContain(token);
+    expect(mockFetch).not.toHaveBeenCalled();
+    await expect(
+      api.getDemoToken("http://localhost:3000"),
+    ).rejects.toMatchObject({
+      status: 403,
+      api: { code: "FORBIDDEN" },
+    });
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("uses explicit demo mode despite existing team credentials and blocks its cached token after returning to preparation", async () => {
+    vi.stubEnv("PAIFLOW_MODE", "demo");
+    mockFetch
+      .mockResolvedValueOnce(
+        ok(
+          {
+            deploymentId: deployment,
+            token,
+            expiresAt: new Date(Date.now() + 3_600_000).toISOString(),
+          },
+          201,
+        ),
+      )
+      .mockResolvedValueOnce(
+        ok({ items: [], nextCursor: null, hasMore: false }),
+      );
+    const api = await import("@/lib/paiflow");
+    await api.listEvents();
+    expect(String(mockFetch.mock.calls[0]![0])).toMatch(/\/demo-token$/);
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    vi.stubEnv("PAIFLOW_MODE", "prepare");
+    await expect(api.listEvents()).rejects.toMatchObject({
+      api: { code: "PREPARATION_MODE" },
+    });
+    expect(mockFetch).toHaveBeenCalledTimes(2);
   });
 });
