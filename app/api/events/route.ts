@@ -1,7 +1,8 @@
-import { listEvents, publicConfig } from "@/lib/paiflow";
+import { listEvents, publicConfig, requireIntegration } from "@/lib/paiflow";
 import { handle, InputError } from "@/lib/http";
 export async function GET(request: Request) {
   return handle(async () => {
+    requireIntegration();
     const params = new URL(request.url).searchParams;
     const cursor = params.get("cursor");
     if (
