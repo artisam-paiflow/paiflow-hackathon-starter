@@ -190,8 +190,8 @@ export function StarterApp({ config }: { config: PublicConfig }) {
       {config.mode === "prepare" && (
         <aside role="status">
           Preparation mode — payments, wallet actions and the live feed are
-          disabled until October 14. Build your app's screens and non-payment
-          features.
+          disabled until your event’s integration start. Build your app's
+          screens and non-payment features.
         </aside>
       )}
       {config.mode === "disabled" && (
