@@ -1,4 +1,4 @@
-Read `llms.md` first; it is the copied hackathon API and product guide. This is starter code, not a supported package — edit freely.
+Read the context pack for the participant’s event first: `llms.md` for JRU or `llms-web3-iloilo.md` for Web3 Iloilo. Each contains the hackathon API and product guide. Use only that event’s preparation and submission rules; do not combine dates, deadlines or onboarding instructions across events. If the event is unspecified, ask which event before giving event-specific instructions. This is starter code, not a supported package — edit freely.
 
 - Call Paiflow only through server-only `lib/paiflow.ts`; keep the deployment token in server environment variables. Never use `NEXT_PUBLIC_` for configuration or return tokens to the browser.
 - Never handle a customer's secret key. Freighter signs XDR in the browser, using the prepared network passphrase. Refuse mainnet.
