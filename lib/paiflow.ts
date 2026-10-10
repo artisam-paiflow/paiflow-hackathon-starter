@@ -47,7 +47,7 @@ function mode(): Mode {
 function origin() {
   try {
     const url = new URL(
-      process.env.PAIFLOW_BASE_URL || "https://beta.app.paiflow.xyz",
+      process.env.PAIFLOW_BASE_URL || "https://beta.paiflow.xyz",
     );
     if (
       !["http:", "https:"].includes(url.protocol) ||

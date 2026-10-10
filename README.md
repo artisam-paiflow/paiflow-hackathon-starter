@@ -52,7 +52,7 @@ Prepare dedicated testnet wallets before integration where permitted. Ask your o
 
 ## Extending the app
 
-- Read the [shared developer context guide](llms.md) and the [staging OpenAPI spec](https://beta.app.paiflow.xyz/api/v1/openapi.json). Idea examples are in section 8 of the guide.
+- Read the [shared developer context guide](llms.md) and the [staging OpenAPI spec](https://beta.paiflow.xyz/api/v1/openapi.json). Idea examples are in section 8 of the guide.
 - All Paiflow calls live in `lib/paiflow.ts`; no token is sent to the browser. `lib/amount.ts` converts decimal strings to integer stroop strings with bigint (7 decimals). Freighter signs; the app never holds customer keys.
 - Execute preparations last **180 seconds**; payouts last **60 seconds**. SUCCESS is final, FAILED can be HTTP 200, and PENDING or transport/502 errors need **Check again** with the same signed envelope. Keep the tab open while uncertain; do not prepare a duplicate payment. API errors retain code/message, request id and Retry-After when supplied.
 - In demo/team modes, the feed polls every five seconds while visible, drains cursor pages and deduplicates by eventId. It can lag; lack of an event alone does not mean payment failed.
