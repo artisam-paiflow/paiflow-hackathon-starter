@@ -224,7 +224,7 @@ describe("demo cache", () => {
     await api.listEvents();
     expect(mints).toBe(2);
     expect(String(mockFetch.mock.calls[0]![0])).toBe(
-      "https://beta.paiflow.xyz/api/v1/demo-token",
+      "https://beta.app.paiflow.xyz/api/v1/demo-token",
     );
   });
   it("shares demo credentials across independently loaded route modules", async () => {
