@@ -17,7 +17,7 @@ The supplied starter defaults to preparation mode when `PAIFLOW_MODE` is unset. 
 
 When your event's integration window opens, set server-only `PAIFLOW_MODE=team` alongside the supplied platform origin, your confirmed deployment UUID and API token, then restart. Explicit `PAIFLOW_MODE=demo` enables the shared testnet demo where available and permitted by your event. An empty token never selects demo automatically; missing or invalid team configuration disables integration with a clear error. Keep the starter's mode guards when replacing its screens or extending its server client. A pending signed payment may still execute after a mode change; confirm its status before switching modes.
 
-`PAIFLOW_MODE` applies to the starter. Campus Snacks uses its own deployment/token readiness checks and does not use the starter's demo fallback.
+`PAIFLOW_MODE` also applies to Campus Snacks: it defaults to prepare, accepts team with validated credentials, and rejects demo. The sample never falls back to a shared deployment.
 
 ## Demonstrating your integration
 
@@ -155,7 +155,7 @@ Email is a flow setting, not a block: optional `notify: { mode, sendTo }`, with 
 
 # 3. Hosted pages
 
-Use `https://beta.app.paiflow.xyz` as the Paiflow testnet origin for every URL below. `deploymentId` is the deployment UUID, not a flow id or `C…` contract address. These pages require a confirmed deployment with the appropriate contract type; an unavailable page returns 404.
+Use `https://beta.paiflow.xyz` as the Paiflow testnet origin for every URL below. `deploymentId` is the deployment UUID, not a flow id or `C…` contract address. These pages require a confirmed deployment with the appropriate contract type; an unavailable page returns 404.
 
 | Page      | URL shape                           | What the team's app uses it for                                                                                                                                                                                                                                                                             |
 | --------- | ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -221,7 +221,7 @@ Submission data has `txHash`, `status: "SUCCESS" | "PENDING" | "FAILED"`, option
 Run from a trusted terminal, not from a browser. Set the Paiflow testnet origin shown below and your real deployment UUID/token/customer public key. `jq` constructs JSON safely. No secret seed is used in these calls.
 
 ```bash
-export PAIFLOW='https://beta.app.paiflow.xyz'
+export PAIFLOW='https://beta.paiflow.xyz'
 export DEPLOYMENT_ID='YOUR-DEPLOYMENT-UUID'
 export PAIFLOW_TOKEN='pfk_YOUR_64_LOWERCASE_HEX_CHARACTERS'
 export FROM='YOUR_CUSTOMER_PUBLIC_G_ADDRESS'
@@ -243,7 +243,7 @@ curl -sS --fail-with-body -X POST "$PAIFLOW/api/v1/deployments/$DEPLOYMENT_ID/ex
 
 ### Copy-paste TypeScript fetch
 
-The following team-mode request example belongs in a server-only module. When extending the supplied starter, retain its mode guards; all six operations below use this helper. Set `PAIFLOW_BASE_URL=https://beta.app.paiflow.xyz` in your own app's server configuration. The error class retains status and retry information; callers must handle these rather than retrying every error.
+The following team-mode request example belongs in a server-only module. When extending the supplied starter, retain its mode guards; all six operations below use this helper. Set `PAIFLOW_BASE_URL=https://beta.paiflow.xyz` in your own app's server configuration. The error class retains status and retry information; callers must handle these rather than retrying every error.
 
 ```ts
 import "server-only";
@@ -565,7 +565,7 @@ Source: [artisam-paiflow/paiflow-campus-snacks](https://github.com/artisam-paifl
 
 Graph: **On Receive USDC → percentage Split**, with Dev mode off. Vendor first: **9000 bps (90%)**; student organisation second: **1000 bps (10%)**. Use distinct funded testnet recipients with the exact USDC trustline. One deployment serves all customers.
 
-When integration is permitted, configure server-only `PAIFLOW_BASE_URL` with the supplied platform origin, `PAIFLOW_DEPLOYMENT_ID` with the team's confirmed deployment UUID, and `PAIFLOW_API_TOKEN` with its token; restart the app. The sample requires its own configured deployment and does not use the starter's shared XLM demo. The server calculates snack prices; Freighter signs in the browser.
+When integration is permitted, set server-only `PAIFLOW_MODE=team` and configure `PAIFLOW_BASE_URL` with the supplied platform origin, `PAIFLOW_DEPLOYMENT_ID` with the team's confirmed deployment UUID, and `PAIFLOW_API_TOKEN` with its token; restart the app. The sample requires its own configured deployment and does not use the starter's shared XLM demo. The server calculates snack prices; Freighter signs in the browser.
 
 For example, a **3.50 USDC** payment splits into **3.15 USDC to the vendor + 0.35 USDC to the student organisation**. Verify your own deployment after setup. The two jars show cumulative received payouts, not wallet balances. They pair a USDC deposit with its percentage Split payout in the same transaction, deduplicate `eventId` and follow contract rounding; unmatched activity stays in history but does not increase totals. `$` labels denote testnet USDC; no real money or goods are involved.
 
