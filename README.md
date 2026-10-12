@@ -37,9 +37,33 @@ Use the standard payment form and configured recipients. `PAIFLOW_MODE=team` and
 
 You may build your app, deploy flows, integrate with Paiflow and test payments before the hackathon. Ask organisers for your team credentials in advance. Use `PAIFLOW_MODE=team` as soon as your confirmed deployment and API token are ready; `prepare` is the default mode for working without a connection. Follow your event brief for submission and qualification requirements.
 
-1. Install **Node 22** and **pnpm 10** (if pnpm is already installed, skip `corepack enable`), then run `pnpm install` and `pnpm dev`. Open http://localhost:3000. With no configuration, the starter defaults to preparation mode.
+1. Install **Node.js 22** and **pnpm 10.4.1 through Corepack** using the setup below, then run `pnpm install` and `pnpm dev`. Open http://localhost:3000. With no configuration, the starter defaults to preparation mode.
 2. Prepare dedicated testnet wallets for your customer and payout recipients. Install [Freighter](https://www.freighter.app/) and select **Testnet**. Fund new accounts with testnet XLM via [Friendbot](https://laboratory.stellar.org/#account-creator?network=test). If using USDC, add the exact trustline described below and obtain testnet USDC separately.
 3. Build your screens and features in `components/starter-app.tsx`. Stay in preparation mode while working without a Paiflow connection, or switch to team mode to integrate and test now.
+
+### Install Node.js and enable pnpm
+
+The starter's `package.json` requires Node `>=22 <23` and pins `pnpm@10.4.1`. On macOS/Linux, install [nvm](https://github.com/nvm-sh/nvm#installing-and-updating), reopen your terminal and run:
+
+```bash
+nvm install 22
+nvm use 22
+node --version
+```
+
+On Windows, select **22.x** in the [official Node.js downloads](https://nodejs.org/en/download), install it, reopen your terminal and run `node --version`. Check that the output starts with `v22.`. With nvm, use `nvm use 22` in each new terminal.
+
+From this repository's directory, enable pnpm through [Corepack](https://github.com/nodejs/corepack#readme):
+
+```bash
+corepack enable pnpm
+corepack install --global pnpm@10.4.1
+pnpm --version
+pnpm install
+pnpm dev
+```
+
+Check that pnpm prints `10.4.1`. Corepack uses the version pinned in `package.json`; keep that pin unchanged. If Corepack is missing or reports a signing-key error, run `npm install --global corepack@latest`, then repeat the Corepack commands. Downloads need an internet connection. See the [Paiflow Guide setup instructions](https://github.com/artisam-paiflow/paiflow/blob/develop/docs/hackathon/paiflow-guide.md#run-the-starter-in-preparation-mode) for the full walkthrough.
 
 The server-only `PAIFLOW_MODE` setting controls integration:
 
