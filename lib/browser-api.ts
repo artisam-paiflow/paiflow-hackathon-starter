@@ -61,12 +61,10 @@ export async function browserRequest<T>(
 export function retryDelay(error: unknown): number {
   if (!(error instanceof IntegrationError) || !error.retryAfter) return 5000;
   const seconds = Number(error.retryAfter);
-  return Math.max(
-    5000,
-    Number.isFinite(seconds)
-      ? seconds * 1000
-      : Date.parse(error.retryAfter) - Date.now(),
-  );
+  const delay = Number.isFinite(seconds)
+    ? seconds * 1000
+    : Date.parse(error.retryAfter) - Date.now();
+  return Number.isFinite(delay) ? Math.max(5000, delay) : 5000;
 }
 
 export function diagnosticNextStep(code: string, message: string): string {

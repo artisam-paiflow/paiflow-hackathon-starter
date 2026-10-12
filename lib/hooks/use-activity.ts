@@ -13,8 +13,21 @@ export function useActivity(enabled: boolean, scope = "default") {
     let cursor: string | null = null;
     let timer: ReturnType<typeof setTimeout>;
     let fetching = false;
+    let nextRequestAt = 0;
+    function schedule() {
+      clearTimeout(timer);
+      if (!stopped && !document.hidden && !fetching)
+        timer = setTimeout(
+          () => void poll(),
+          Math.max(0, nextRequestAt - Date.now()),
+        );
+    }
     async function poll() {
       if (stopped || document.hidden || fetching) return;
+      if (Date.now() < nextRequestAt) {
+        schedule();
+        return;
+      }
       fetching = true;
       let delay = 5000;
       try {
@@ -40,12 +53,13 @@ export function useActivity(enabled: boolean, scope = "default") {
           setError(e instanceof Error ? e.message : "Feed unavailable");
       } finally {
         fetching = false;
-        if (!stopped) timer = setTimeout(() => void poll(), delay);
+        nextRequestAt = Date.now() + delay;
+        schedule();
       }
     }
     const visible = () => {
       clearTimeout(timer);
-      void poll();
+      schedule();
     };
     document.addEventListener("visibilitychange", visible);
     void poll();

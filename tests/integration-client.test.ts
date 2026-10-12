@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
+import { fixturePrepared, fixtureTransaction } from "./transaction-fixture";
 const fetchMock = vi.fn<typeof fetch>();
 const id = "11111111-1111-4111-8111-111111111111";
 const ok = (data: unknown) => new Response(JSON.stringify({ data }));
@@ -93,7 +94,7 @@ it("normalizes public allowance network and transaction maxTime using live state
 it("keeps execute preparation linkage for the same envelope submit", async () => {
   fetchMock
     .mockResolvedValueOnce(
-      new Response(JSON.stringify({ data: { xdr: "unsigned" } }), {
+      new Response(JSON.stringify({ data: fixturePrepared }), {
         headers: { "x-history-request-id": id },
       }),
     )
@@ -103,6 +104,8 @@ it("keeps execute preparation linkage for the same envelope submit", async () =>
     from: `G${"A".repeat(55)}`,
     amount: "1",
   });
+  expect(p.txHash).toBe(Buffer.from(fixtureTransaction.hash()).toString("hex"));
+  expect(p.xdr).toBe(fixturePrepared.xdr);
   await api.submitExecute(
     { signedXdr: "original" },
     true,
@@ -152,4 +155,30 @@ it("refuses mainnet Webhook before sending callback", async () => {
     api.webhookReward({ key: "task-42", payload: { escrow: true } }),
   ).rejects.toThrow("Testnet");
   expect(fetchMock).toHaveBeenCalledTimes(1);
+});
+it("refuses fee-bump recovery envelopes and mismatched preparation networks", async () => {
+  const { Keypair, Networks, TransactionBuilder } =
+    await import("@stellar/stellar-sdk");
+  const api = await import("@/lib/paiflow");
+  const feeBump = TransactionBuilder.buildFeeBumpTransaction(
+    Keypair.fromRawEd25519Seed(Buffer.alloc(32, 9)),
+    "100",
+    fixtureTransaction,
+    Networks.TESTNET,
+  );
+  expect(() => api.executeHash(feeBump.toXDR())).toThrow(
+    /retain recovery evidence/,
+  );
+  fetchMock.mockResolvedValueOnce(
+    ok({ ...fixturePrepared, network: "mainnet" }),
+  );
+  await expect(
+    api.prepareExecute({ from: fixtureTransaction.source, amount: "1" }),
+  ).rejects.toMatchObject({ status: 422 });
+  fetchMock.mockResolvedValueOnce(
+    ok({ ...fixturePrepared, networkPassphrase: Networks.PUBLIC }),
+  );
+  await expect(
+    api.prepareExecute({ from: fixtureTransaction.source, amount: "1" }),
+  ).rejects.toMatchObject({ status: 422 });
 });

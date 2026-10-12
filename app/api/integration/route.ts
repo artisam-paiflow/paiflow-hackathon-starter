@@ -25,7 +25,14 @@ function payload(value: unknown, keys: string[], required: string[]) {
     if (
       typeof v !== "string" ||
       !v ||
-      v.length > (k === "signedXdr" ? 100000 : k === "intent" ? 20000 : 128)
+      v.length >
+        (k === "xdr"
+          ? 200000
+          : k === "signedXdr"
+            ? 100000
+            : k === "intent"
+              ? 20000
+              : 128)
     )
       throw new InputError(`Invalid ${k}.`);
     if (
@@ -209,6 +216,7 @@ export async function POST(request: Request) {
     const op = outer.operation;
     const phase = outer.phase;
     const supported = [
+      "execute",
       "funding",
       "allowance",
       "subscription.cancel",
@@ -230,6 +238,14 @@ export async function POST(request: Request) {
           | "schedule.retrieve"
           | "releaseEarly",
       );
+    if (op === "execute") {
+      if (phase === "submit")
+        throw new InputError("Execute submission uses the payment route.");
+      const b = payload(outer.input, ["xdr"], ["xdr"]);
+      return phase === "prepare"
+        ? { txHash: api.executeHash(b.xdr!) }
+        : api.reconcileExecute(b.xdr!);
+    }
     if (phase !== "prepare") {
       const keys = op === "funding" ? ["intent", "action"] : ["intent"];
       const b = payload(

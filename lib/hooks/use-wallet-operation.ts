@@ -223,6 +223,19 @@ export function useWalletOperation(scope: string, enabled: boolean) {
       }
       const r = readRecovery(scope, saved);
       setRecovery(r);
+      // Persist a legacy record's original hash even when status lookup fails.
+      if (r.operation === "execute" && !r.prepared.txHash) {
+        const original = await browserRequest<{ txHash: string }>(
+          "/api/integration",
+          {
+            operation: "execute",
+            phase: "prepare",
+            input: { xdr: r.prepared.xdr },
+          },
+        );
+        r.prepared = { ...r.prepared, txHash: original.txHash };
+        save(r);
+      }
       if (canResumeEnvelope(r)) {
         save({ ...r, signing: true });
         const signedXdr = await signPrepared(r.prepared, r.address);
@@ -232,17 +245,29 @@ export function useWalletOperation(scope: string, enabled: boolean) {
         return;
       }
       if (r.operation === "execute") {
-        if (r.prepared.txHash) {
-          const data = await browserRequest<{ status: string }>(
-            `/api/integration?read=transaction&txHash=${r.prepared.txHash}`,
-          );
-          setMessage(data.status);
-          if (replacementSafe(data, false)) {
-            finish();
-            return;
-          }
+        const data = await browserRequest<{ status: string; txHash: string }>(
+          "/api/integration",
+          {
+            operation: "execute",
+            phase: "reconcile",
+            input: { xdr: r.prepared.xdr },
+          },
+        );
+        const reconciled = {
+          ...r,
+          prepared: { ...r.prepared, txHash: data.txHash },
+        };
+        save(reconciled);
+        setMessage(`${data.status} · ${data.txHash}`);
+        if (replacementSafe(data, false)) {
+          finish();
+          return;
         }
-        await submit(r);
+        if (r.signedXdr) await submit(reconciled);
+        else
+          setMessage(
+            `${data.status} · ${data.txHash}. The original envelope has expired and no signature is saved. Keep this record and request platform support to establish finality or ledger-covered noninclusion; the published execute API cannot prove safe replacement from expiry or NOT_FOUND.`,
+          );
         return;
       }
       const result = await browserRequest<{

@@ -1,4 +1,9 @@
 import "server-only";
+import {
+  FeeBumpTransaction,
+  Networks,
+  TransactionBuilder,
+} from "@stellar/stellar-sdk";
 // starter code, not a supported package — edit freely.
 
 export type Prepared = {
@@ -7,6 +12,7 @@ export type Prepared = {
   network: "testnet" | "mainnet";
   expiresAt: string;
   preparationRequestId?: string;
+  txHash?: string;
 };
 export type Submitted = {
   txHash: string;
@@ -256,8 +262,58 @@ export async function payoutsAvailable(): Promise<boolean> {
   );
 }
 
-export const prepareExecute = (input: { from: string; amount: string }) =>
-  call<Prepared>("execute", "POST", input);
+export function executeHash(xdr: string): string {
+  try {
+    const transaction = TransactionBuilder.fromXDR(xdr, Networks.TESTNET);
+    if (transaction instanceof FeeBumpTransaction)
+      throw new Error("Unsupported envelope");
+    return Buffer.from(transaction.hash()).toString("hex");
+  } catch {
+    throw new PaiflowError(
+      422,
+      {
+        code: "VALIDATION",
+        message:
+          "Invalid original transaction envelope; retain recovery evidence for support.",
+      },
+      null,
+      null,
+    );
+  }
+}
+export const prepareExecute = async (input: {
+  from: string;
+  amount: string;
+}) => {
+  const prepared = await call<Prepared>("execute", "POST", input);
+  if (
+    prepared.network !== "testnet" ||
+    prepared.networkPassphrase !== Networks.TESTNET
+  )
+    throw new PaiflowError(
+      422,
+      { code: "VALIDATION", message: "Only Testnet preparations are allowed." },
+      null,
+      null,
+    );
+  return { ...prepared, txHash: executeHash(prepared.xdr) };
+};
+/** Recover old records from their original envelope, never from a replacement. */
+export async function reconcileExecute(xdr: string) {
+  const txHash = executeHash(xdr);
+  try {
+    return { ...(await transactionStatus(txHash)), txHash };
+  } catch (error) {
+    // Absent deployment association / RPC history is uncertainty, not expiry proof.
+    if (
+      error instanceof PaiflowError &&
+      error.status === 404 &&
+      error.api.code === "NOT_FOUND"
+    )
+      return { status: "UNKNOWN", txHash };
+    throw error;
+  }
+}
 export const submitExecute = (
   input: { signedXdr: string },
   wait = true,
