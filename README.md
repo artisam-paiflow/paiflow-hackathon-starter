@@ -14,6 +14,8 @@ For the flow-building walkthrough, use the [Paiflow Guide](https://github.com/ar
 
 Requires **Node `>=22.22.2 <23`** and **pnpm `10.4.1`**.
 
+On Windows, follow the [Windows Setup Guide](https://github.com/artisam-paiflow/paiflow/blob/develop/docs/hackathon/setup-guide.md) to install Git, Node and pnpm, run this starter, then set up Engr with Kimi.
+
 ```sh
 git clone https://github.com/artisam-paiflow/paiflow-hackathon-starter.git
 cd paiflow-hackathon-starter
