@@ -1,5 +1,10 @@
 name: SDK starter checks
-on: [push, pull_request]
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 6 * * 1"
+  workflow_dispatch:
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -13,6 +18,7 @@ jobs:
           node-version: 22.22.2
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm audit
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
