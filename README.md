@@ -53,7 +53,9 @@ Complete credentials enable this example. Removing them disables new API actions
 4. Check the original transaction's status. `SUCCESS` confirms that transaction. `PENDING`, `UNKNOWN`, missing history and transport errors remain unresolved.
 5. Inspect recipient payouts in Paiflow or a testnet explorer. A transaction confirmation is not an application receipt or authorization to fulfil an order.
 
-This is a fixed-amount payment demonstration, not a shop. It has no customer authentication, persistent order database or fulfilment system, and does not independently verify your intended recipients or split. Real applications need session/ownership checks, rate limits, trusted pricing, durable order-to-transaction binding and exact receipt verification.
+This is a fixed-amount payment demonstration, not a shop. It has no customer authentication, persistent order database or fulfilment system, and does not independently verify your intended recipients or split. The payment API has global per-process limits of 20 preparations, 20 submissions and 120 status checks per minute, plus 240 total payment requests per minute. Limits return HTTP 429 with `Retry-After`; preparation traffic has a separate allowance from transaction recovery. Request bodies are limited to 210,000 bytes while streaming. Client-supplied forwarding headers do not change these budgets.
+
+These in-memory limits reset on restart and apply separately to each server process. Public hosting should also enforce shared rate and body-size limits at the ingress across replicas. Real applications need session/ownership checks, durable storage, trusted pricing, durable order-to-transaction binding and exact receipt verification.
 
 ## Recover an interrupted payment
 
@@ -86,11 +88,14 @@ The SDK supplies transport, typed responses and API metadata. Your app supplies 
 ## Checks and evidence
 
 ```sh
+pnpm audit
 pnpm typecheck
 pnpm test
 pnpm build
 node scripts/check-browser-bundle.mjs
 ```
+
+CI also audits dependencies on pushes, pull requests and a weekly schedule. Vite is an explicit development dependency so its patched version is selected for Vitest rather than retaining an older auto-installed peer.
 
 Tests use fixtures and mocked upstream responses. They do not establish live wallet consent or payout readiness. Complete a small authorized testnet rehearsal against your deployment before demonstrating it. No fresh signed payment was made for this migration.
 
