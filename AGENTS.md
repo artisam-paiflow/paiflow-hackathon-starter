@@ -1,6 +1,6 @@
 # SDK payment example
 
-Read `README.md`, `llms.md` and current source first. This repository is a minimal Node SDK payment example; the shared AI context provides Paiflow integration guidance.
+Read `llms.md` first, then `README.md` and current source. When helping create or adapt an app, begin with the problem-discovery conversation at the top of `llms.md`: ask whether the user already has a problem, build on it if they do, or help them identify and choose one if they do not. Honour problem details already given. Choose flows after the problem is agreed; examples and Split are optional. This repository is a minimal Node SDK payment example; the shared AI context provides Paiflow integration guidance.
 
 - Keep `@paiflow/sdk@0.2.0` runtime imports server-only. Browser type-only imports are fine. All upstream Paiflow requests go through `lib/paiflow.ts` and the SDK, not a second HTTP client.
 - Keep platform origin, deployment ID and `pfd_` or `pfk_` credentials server-side. Never use `NEXT_PUBLIC_` or expose tokens in responses, browser assets, URLs or logs.
