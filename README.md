@@ -4,11 +4,27 @@ A small, runnable Next.js example for integrating `@paiflow/sdk` into your own a
 
 The SDK runs in your Node server. The browser calls your application's routes and signs with Freighter; it never receives the Paiflow credential. Copy the integration into an existing app or use this minimal example as a starting point.
 
+## Start with the problem
+
+Do you already have a problem you want to solve? If so, describe the user, their difficulty and what a better outcome would look like. If not, start with people or communities you know and problems they face; use the [problem-discovery guidance](llms.md#first-action-understand-the-users-problem) with your AI assistant to explore a few options before choosing one.
+
+Build an app with Paiflow at the centre of its payment journey. Choose the flow to fit that problem. The simplest integration exercise is **On Receive → Pay full amount to one configured recipient**. Splitting payments is optional, and the starter does not require a Split action.
+
+| Optional example                             | Payment flow                                            |
+| -------------------------------------------- | ------------------------------------------------------- |
+| Workshop ticketing                           | Receive → Pay one organiser                             |
+| Service booking                              | Receive → Pay one provider                              |
+| Donation routing by payment amount           | Receive → Amount condition → Pay on each branch         |
+| Savings held until a date                    | Receive → Time condition with Hold before and Pay after |
+| Shared checkout with an agreed revenue share | Receive → Split                                         |
+
+These are inspiration, not assigned challenges. See [previous hackathon winners](https://beta.paiflow.xyz/hackathons.html) for more ideas. Ask organisers about feature availability before choosing conditions or other advanced features. The starter demonstrates a deposit payment; your app supplies ticketing, booking and receipt verification, and a held deposit is not a completed payout.
+
 ## Choose your starting point
 
-Use the SDK in your own app when you already have an application. Use this minimal payment example when you want a runnable reference for the prepare → sign → submit → verify → recover lifecycle. [Campus Snacks](https://github.com/artisam-paiflow/paiflow-campus-snacks) is a separate application sample for a campus ordering use case.
+Use the SDK in your own app when you already have an application. Use this minimal payment example when you want a runnable reference for the prepare → sign → submit → verify → recover lifecycle. Its unchanged code sends a fixed 1 XLM payment to an eligible native-XLM Receive deployment; other amounts, assets and advanced workflows require deliberate integration work.
 
-For the flow-building walkthrough, use the [Paiflow Guide](https://github.com/artisam-paiflow/paiflow/blob/develop/docs/hackathon/paiflow-guide.md). For detailed integration reference, use the [SDK README](https://github.com/artisam-paiflow/paiflow/blob/develop/packages/sdk/README.md) and [API README](https://github.com/artisam-paiflow/paiflow/blob/develop/docs/api/README.md).
+For the flow-building walkthrough, use the [Paiflow Guide](https://github.com/artisam-paiflow/paiflow/blob/develop/docs/hackathon/paiflow-guide.md). Its 90/10 Split walkthrough is one optional learning exercise. For detailed integration reference, use the [SDK README](https://github.com/artisam-paiflow/paiflow/blob/develop/packages/sdk/README.md) and [API README](https://github.com/artisam-paiflow/paiflow/blob/develop/docs/api/README.md). [Campus Snacks](https://github.com/artisam-paiflow/paiflow-campus-snacks) is a separate USDC ordering sample whose 90/10 split serves its own use case.
 
 ## Run locally
 
@@ -31,7 +47,7 @@ The dependency is pinned to **`@paiflow/sdk@0.2.0`**, published under npm's `bet
 
 ## Configure your deployment
 
-1. In Paiflow, build and deploy an **On Receive (native XLM)** flow with your chosen recipients and rules. Wait for confirmation and review those rules. This app does not create or deploy flows.
+1. In Paiflow, build and deploy an **On Receive (native XLM)** flow with rules that fit your problem. For a simple exercise, connect **On Receive → Pay** and pay the full amount to one configured recipient. Wait for confirmation and review those rules. This app does not create or deploy flows.
 2. In **Account → Developer**, create a **Read and operate** token and explicitly grant it access to that deployment. Copy its one-time `pfd_` secret. An existing deployment-bound `pfk_` token from **API access** also works.
 3. Set these server-only values in `.env.local`, then restart:
 
@@ -53,7 +69,7 @@ Complete credentials enable this example. Removing them disables new API actions
 4. Check the original transaction's status. `SUCCESS` confirms that transaction. `PENDING`, `UNKNOWN`, missing history and transport errors remain unresolved.
 5. Inspect recipient payouts in Paiflow or a testnet explorer. A transaction confirmation is not an application receipt or authorization to fulfil an order.
 
-This is a fixed-amount payment demonstration, not a shop. It has no customer authentication, persistent order database or fulfilment system, and does not independently verify your intended recipients or split. The payment API has global per-process limits of 20 preparations, 20 submissions and 120 status checks per minute, plus 240 total payment requests per minute. Limits return HTTP 429 with `Retry-After`; preparation traffic has a separate allowance from transaction recovery. Request bodies are limited to 210,000 bytes while streaming. Client-supplied forwarding headers do not change these budgets.
+This is a fixed-amount payment demonstration, not a shop. It has no customer authentication, persistent order database or fulfilment system, and does not independently verify your intended recipient payouts. The payment API has global per-process limits of 20 preparations, 20 submissions and 120 status checks per minute, plus 240 total payment requests per minute. Limits return HTTP 429 with `Retry-After`; preparation traffic has a separate allowance from transaction recovery. Request bodies are limited to 210,000 bytes while streaming. Client-supplied forwarding headers do not change these budgets.
 
 These in-memory limits reset on restart and apply separately to each server process. Public hosting should also enforce shared rate and body-size limits at the ingress across replicas. Real applications need session/ownership checks, durable storage, trusted pricing, durable order-to-transaction binding and exact receipt verification.
 
